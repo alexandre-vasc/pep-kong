@@ -1,11 +1,12 @@
 local _M = {}
 local pl_stringx = require "pl.stringx"
 local req_get_headers = ngx.req.get_headers
-local http = require "socket.http"
 local responses = require "kong.tools.responses"
+local crypto = require("crypto")
 
 local utils = require "kong.plugins.pepkong.utils"
 local PDPSender = require "kong.plugins.pepkong.pdpsender"
+-- local policy = require "kong.plugins.pepkong.pdpcache"
 
 
 function _M.run(conf)
@@ -18,20 +19,23 @@ function _M.run(conf)
 
     -- remove the word 'bearer' from te token
     local rawJWT = string.sub(req_get_headers()["Authorization"]  , 8)
-      
+
     -- gather information about the request. Like ip address and HTTP method
     local ipAddr  = ngx.var.remote_addr
     local method = ngx.var.request_method
 
     -- Get the URL prefix and discard URL parameters
     local path_prefix = utils.split( ngx.var.request_uri , '?' )[1]
-    
+
     if not pl_stringx.endswith(path_prefix, "/") then
         path_prefix = path_prefix .. "/"
     end
-    
+
     local toPrint = 'Received uri: ' .. path_prefix .. ' method: ' .. method .. ' ip: ' .. ipAddr
     utils.printToFile(debug.getinfo(1).currentline,toPrint)
+
+    local hash = crypto.digest( "sha256", rawJWT .. ";" .. method .. ";" .. path_prefix )
+    utils.printToFile(debug.getinfo(1).currentline,"has is: " .. hash)
 
     -- send the gathered information to PDP, asking if the access is allowed
     local pdpresp = PDPSender.sendRequest(conf, rawJWT, method, path_prefix, ipAddr)
