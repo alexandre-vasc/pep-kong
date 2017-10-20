@@ -9,16 +9,17 @@ local PDPUtils = require "kong.plugins.pepkong.pdputils"
   Prepare and send an access request to the PDP
 --]]
 function PDPSender_module.sendRequest(conf, rawJWT, action, resource, ip)
-    utils.printToFile(debug.getinfo(1).currentline,'PDPSender:  action: ' .. action .. ' url: ' .. conf.pdpUrl .. ' mode: ' .. conf.pdpMode )
+    utils.printToFile(debug.getinfo(1).currentline, 'PDPSender:  action: ' .. action ..
+                        ' url: ' .. conf.pdp_url .. ' mode: ' .. conf.pdp_mode )
 
-    local requestData = PDPUtils.buildRequest(conf.pdpMode, rawJWT, action, resource, ip)
+    local requestData = PDPUtils.buildRequest(conf.pdp_mode, rawJWT, action, resource, ip)
 
     local response_body = { }
 
     -- Forward to PDP
     local res, code, response_headers, status = http.request
 		{
-			url = conf.pdpUrl,
+			url = conf.pdp_url,
 			method = "POST",
       sink = ltn12.sink.table(response_body),
 			headers =
